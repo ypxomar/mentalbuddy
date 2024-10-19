@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Features | MentalBuddy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .active {
+      display: block;
+    }
+
+    .map-container {
+      height: 300px;
+      width: 100%;
+    }
+
+    .symptom-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    #diagnosisResult {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .symptom-container textarea {
+      width: 80%;
+      padding: 10px;
+    }
+
+    .symptom-container button {
+      padding: 10px 20px;
+      background-color: #457b9d;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-[#457b9d]">
+  <header class="bg-[#457b9d] text-white">
+    <div class="container mx-auto flex justify-between items-center py-4 px-6">
+      <div class="flex items-center space-x-4">
+        <span class="text-2xl font-bold">MentalBuddy</span>
+      </div>
+      <nav class="flex space-x-6">
+        <a class="hover:text-gray-300" href="index.html">Home</a>
+        <a class="hover:text-gray-300" href="features.html">Features</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container mx-auto flex flex-col items-center justify-center min-h-screen py-16 px-6">
+    <!-- Tabs -->
+    <div class="flex justify-center mb-6">
+      <button id="btn-symptoms" class="bg-[#457b9d] text-white px-4 py-2 rounded-lg focus:outline-none mr-4" onclick="showTab('symptoms')">Symptoms Tracker</button>
+      <button id="btn-doctor" class="bg-gray-200 text-[#457b9d] px-4 py-2 rounded-lg focus:outline-none mr-4" onclick="showTab('doctor')">Doctor Finder</button>
+      <button id="btn-pharmacy" class="bg-gray-200 text-[#457b9d] px-4 py-2 rounded-lg focus:outline-none mr-4" onclick="showTab('pharmacy')">Pharmacy</button>
+      <button id="btn-health" class="bg-gray-200 text-[#457b9d] px-4 py-2 rounded-lg focus:outline-none mr-4" onclick="showTab('health')">Health</button>
+      <button id="btn-reminders" class="bg-gray-200 text-[#457b9d] px-4 py-2 rounded-lg focus:outline-none" onclick="showTab('reminders')">Reminders</button>
+    </div>
+
+    <!-- Symptom Diagnosis Tab -->
+    <div id="symptoms" class="active md:w-1/2 z-10 bg-white p-8 shadow-lg text-center">
+      <h2 class="text-3xl font-bold text-gray-800 mb-4">Symptom Diagnosis</h2>
+      <div class="symptom-container">
+        <textarea id="symptomInput" placeholder="Enter your symptoms (comma-separated)..." rows="2"></textarea>
+        <button id="searchSymptoms" class="bg-[#457b9d] text-white px-4 py-2 rounded-lg mt-4">Search Diagnosis</button>
+        <div id="diagnosisResult" class="mt-4 text-gray-800"></div>
+      </div>
+    </div>
+
+    <!-- Doctor Finder Tab -->
+    <div id="doctor" class="hidden md:w-1/2 z-10 bg-white p-8 shadow-lg text-center">
+      <h2 class="text-3xl font-bold text-gray-800 mb-4">Doctor Finder</h2>
+      <p class="text-gray-800 mb-6">Find doctors near your location.</p>
+      <div id="map" class="map-container"></div>
+    </div>
+
+    <!-- Pharmacy Tab -->
+    <div id="pharmacy" class="hidden md:w-1/2 z-10 bg-white p-8 shadow-lg text-center">
+      <h2 class="text-3xl font-bold text-gray-800 mb-4">Pharmacy</h2>
+      <p class="text-gray-800 mb-6">Work in Progress</p>
+    </div>
+
+    <!-- Health Tab -->
+    <div id="health" class="hidden md:w-1/2 z-10 bg-white p-8 shadow-lg text-center">
+      <h2 class="text-3xl font-bold text-gray-800 mb-4">Health</h2>
+      <div class="mt-4">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Mental / Breathing Exercises</h3>
+        <p>Guided mental and breathing exercises for stress relief and mental clarity.</p>
+        <button class="bg-[#457b9d] text-white px-4 py-2 rounded-lg mt-4">Start Breathing Exercise</button>
+      </div>
+      <div class="mt-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Physical Exercises</h3>
+        <p>Simple physical exercises to stay active and healthy.</p>
+        <button class="bg-[#457b9d] text-white px-4 py-2 rounded-lg mt-4">Start Physical Exercise</button>
+      </div>
+    </div>
+
+    <!-- Reminders Tab -->
+    <div id="reminders" class="hidden md:w-1/2 z-10 bg-white p-8 shadow-lg text-center">
+      <h2 class="text-3xl font-bold text-gray-800 mb-4">Reminders</h2>
+      <p class="text-gray-800 mb-6">Set reminders for your health tasks.</p>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script>
+    // Load the last active tab from localStorage
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedTab = localStorage.getItem('activeTab');
+      if (savedTab) {
+        showTab(savedTab);
+      }
+    });
+
+    // Function to show the tab and save the active tab in localStorage
+    function showTab(tab) {
+      const tabs = ['symptoms', 'doctor', 'pharmacy', 'health', 'reminders'];
+      const buttons = {
+        'symptoms': document.getElementById('btn-symptoms'),
+        'doctor': document.getElementById('btn-doctor'),
+        'pharmacy': document.getElementById('btn-pharmacy'),
+        'health': document.getElementById('btn-health'),
+        'reminders': document.getElementById('btn-reminders')
+      };
+
+      // Hide all tabs and reset button styles
+      tabs.forEach(t => {
+        document.getElementById(t).classList.add('hidden');
+        document.getElementById(t).classList.remove('active');
+        buttons[t].classList.remove('bg-[#457b9d]', 'text-white');
+        buttons[t].classList.add('bg-gray-200', 'text-[#457b9d]');
+      });
+
+      // Show the selected tab
+      document.getElementById(tab).classList.add('active');
+      document.getElementById(tab).classList.remove('hidden');
+      buttons[tab].classList.add('bg-[#457b9d]', 'text-white');
+      buttons[tab].classList.remove('bg-gray-200', 'text-[#457b9d]');
+
+      // Save the active tab to localStorage
+      localStorage.setItem('activeTab', tab);
+    }
+
+    // Predefined symptom and diagnosis data
+    const symptomData = {
+  "fever": ["Common Cold", "Flu", "COVID-19", "Malaria", "Dengue Fever"],
+  "headache": ["Migraine", "Tension Headache", "Sinusitis", "Cluster Headache", "Meningitis"],
+  "fatigue": ["Chronic Fatigue Syndrome", "Anemia", "Hypothyroidism", "Diabetes", "Sleep Apnea", "Depression"],
+  "cough": ["Bronchitis", "Pneumonia", "Asthma", "Tuberculosis", "COVID-19"],
+  "shortness of breath": ["Asthma", "COPD", "Pneumonia", "Heart Failure", "Pulmonary Embolism"],
+  "sore throat": ["Tonsillitis", "Strep Throat", "Common Cold", "Flu", "COVID-19"],
+  "nausea": ["Gastroenteritis", "Food Poisoning", "Pregnancy", "Motion Sickness", "Peptic Ulcer"],
+  "vomiting": ["Food Poisoning", "Gastroenteritis", "Migraine", "Appendicitis", "Peptic Ulcer"],
+  "chest pain": ["Heart Attack", "Angina", "Costochondritis", "Pneumonia", "Pulmonary Embolism"],
+  "abdominal pain": ["Appendicitis", "Gastroenteritis", "Irritable Bowel Syndrome", "Gallstones", "Peptic Ulcer"],
+  "diarrhea": ["Food Poisoning", "Irritable Bowel Syndrome", "Gastroenteritis", "Crohn's Disease", "Ulcerative Colitis"],
+  "constipation": ["Irritable Bowel Syndrome", "Hypothyroidism", "Dehydration", "Colon Cancer", "Pregnancy"],
+  "rash": ["Allergic Reaction", "Eczema", "Psoriasis", "Chickenpox", "Shingles"],
+  "joint pain": ["Rheumatoid Arthritis", "Osteoarthritis", "Lupus", "Gout", "Fibromyalgia"],
+  "dizziness": ["Vertigo", "Low Blood Pressure", "Dehydration", "Anemia", "Hypoglycemia"],
+  "weight loss": ["Hyperthyroidism", "Cancer", "Diabetes", "Celiac Disease", "Depression"],
+  "weight gain": ["Hypothyroidism", "Cushing's Syndrome", "PCOS", "Heart Failure", "Depression"],
+  "blurred vision": ["Glaucoma", "Cataracts", "Diabetic Retinopathy", "Stroke", "Migraine"],
+  "muscle weakness": ["Multiple Sclerosis", "ALS", "Guillain-Barre Syndrome", "Myasthenia Gravis", "Stroke"],
+  "back pain": ["Sciatica", "Herniated Disc", "Muscle Strain", "Osteoporosis", "Kidney Stones"],
+  "palpitations": ["Arrhythmia", "Anxiety", "Hyperthyroidism", "Dehydration", "Heart Disease"],
+
+  // Mental health symptoms
+  "anxiety": ["Generalized Anxiety Disorder", "Panic Disorder", "Social Anxiety Disorder", "Depression", "PTSD"],
+  "insomnia": ["Generalized Anxiety Disorder", "Depression", "PTSD", "Bipolar Disorder", "Chronic Insomnia"],
+  "irritability": ["Bipolar Disorder", "Depression", "Anxiety", "ADHD", "PTSD"],
+  "low mood": ["Depression", "Bipolar Disorder", "Seasonal Affective Disorder (SAD)", "PTSD"],
+  "lack of concentration": ["ADHD", "Depression", "Anxiety", "Bipolar Disorder", "Schizophrenia"],
+  "fatigue (mental)": ["Depression", "Generalized Anxiety Disorder", "PTSD", "Bipolar Disorder"],
+  "feeling hopeless": ["Depression", "Bipolar Disorder", "Schizophrenia", "PTSD"],
+  "social withdrawal": ["Depression", "Schizophrenia", "Social Anxiety Disorder", "Autism Spectrum Disorder", "PTSD"],
+  "hallucinations": ["Schizophrenia", "Bipolar Disorder", "Dementia", "Severe Depression", "Substance Abuse"],
+  "delusions": ["Schizophrenia", "Bipolar Disorder", "Psychosis", "Paranoid Personality Disorder", "Dementia"]
+};
+
+// Symptom Diagnosis with disease filtering logic
+document.getElementById('searchSymptoms').addEventListener('click', function() {
+  const symptomsInput = document.getElementById('symptomInput').value.trim().toLowerCase();
+  const symptoms = symptomsInput.split(',').map(s => s.trim());
+  
+  // Create a diagnosis map to store all possible diagnoses for each symptom
+  const diagnosisMap = {};
+
+  symptoms.forEach(symptom => {
+    if (symptomData[symptom]) {
+      symptomData[symptom].forEach(disease => {
+        if (diagnosisMap[disease]) {
+          diagnosisMap[disease]++;
+        } else {
+          diagnosisMap[disease] = 1;
+        }
+      });
+    }
+  });
+
+  // Filter diseases that match all entered symptoms
+  const possibleDiagnoses = Object.keys(diagnosisMap).filter(disease => diagnosisMap[disease] === symptoms.length);
+
+  if (possibleDiagnoses.length > 0) {
+    document.getElementById('diagnosisResult').innerHTML = `Possible Diagnoses: ${possibleDiagnoses.join(', ')}`;
+  } else {
+    document.getElementById('diagnosisResult').innerHTML = 'No matching diagnoses found for the combination of symptoms. Please check your input or try different symptoms.';
+  }
+});
+  </script>
+</body>
+</html>
